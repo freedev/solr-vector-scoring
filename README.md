@@ -11,7 +11,7 @@ The plugin was developed and tested on Solr `7.4.0`.
 ```
 mvn -Prelease clean package
 ```
-2. Copy the jar to {solr.install.dir}/dist/plugins/
+2. Copy the jar Vector-Plugin-deploy-*.jar to {solr.install.dir}/dist/plugins/
 3. Add the library to solrconfig.xml file:
 ```
 <lib dir="${solr.install.dir:../../../..}/dist/plugins/" regex=".*\.jar" />
