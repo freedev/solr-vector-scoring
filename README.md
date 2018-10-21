@@ -7,27 +7,31 @@ This plugin is the same as [Vector Scoring Plugin for Elasticsearch](https://git
 
 The plugin was developed and tested on Solr `7.4.0`.
 
-1. Copy VectorPlugin.jar to {solr.install.dir}/dist/plugins/
-2. Add the library to solrconfig.xml file:
+1. Build the jar using maven
+```
+mvn -Prelease clean package
+```
+2. Copy the jar to {solr.install.dir}/dist/plugins/
+3. Add the library to solrconfig.xml file:
 ```
 <lib dir="${solr.install.dir:../../../..}/dist/plugins/" regex=".*\.jar" />
 ```
-3. Add the plugin Query parser to solrconfig.xml:
+4. Add the plugin Query parser to solrconfig.xml:
 ```
 <queryParser name="vp" class="com.github.saaay71.solr.query.VectorQParserPlugin" />
 ```
-4. Add the fieldType `VectorField` to schema file(managed-schema):
+5. Add the fieldType `VectorField` to schema file(managed-schema):
 ```
       <fieldType name="VectorField" class="solr.BinaryField" stored="true" indexed="false" multiValued="false"/>
 ```
-5. Add the field `vector` to schema file:
+6. Add the field `vector` to schema file:
 ```
     <field name="_vector_" type="VectorField" />
     <field name="_lsh_hash_" type="string" indexed="true" stored="true" multiValued="true"/>
     <field name="vector" type="string" indexed="true" stored="true"/>
 ```
 
-6. Add the LSH urp to solrconfig.xml
+7. Add the LSH urp to solrconfig.xml
 ```
     <updateRequestProcessorChain name="LSH">
         <processor class="com.github.saaay71.solr.updateprocessor.LSHUpdateProcessorFactory" >
@@ -41,7 +45,7 @@ The plugin was developed and tested on Solr `7.4.0`.
     </updateRequestProcessorChain>
 ```
 
-7. Start Solr!
+8. Start Solr!
 
 ## Example
 
