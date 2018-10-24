@@ -18,10 +18,13 @@ import org.apache.solr.update.processor.UpdateRequestProcessorFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class VectorQParserPlugin extends QParserPlugin {
 
-	private static Map<String, LSHSuperBit> superBitCache = new HashMap<>();
+	public static final Double DEFAULT_RERANK_WEIGHT = 1.0d;
+	private static final Map<String, LSHSuperBit> superBitCache = new HashMap<>();
+	private static final Map<String, Double> stagesScoreCache = new HashMap<>();
 
 	@Override
 	public QParser createParser(String qstr, SolrParams localParams, SolrParams params, SolrQueryRequest req) {
@@ -51,7 +54,7 @@ public class VectorQParserPlugin extends QParserPlugin {
 					q.setQueryString(localParams.toLocalParamsString());
 					query = q;
 				} else {
-					final int topNDocs = localParams.getInt("topNDocs", 200);
+					final int topNDocs = localParams.getInt(ReRankQParserPlugin.RERANK_DOCS, ReRankQParserPlugin.RERANK_DOCS_DEFAULT);
 					String lshQuery = computeLSHQueryString(vector, vectorArray);
 					if(subQueryStr != null && !subQueryStr.equals("")) {
 						lshQuery = subQuery(subQueryStr, null).getQuery() + " AND " + lshQuery;
@@ -63,10 +66,9 @@ public class VectorQParserPlugin extends QParserPlugin {
 					if(topNDocs == 0) {
 						return luceneQuery;
 					}
-					final double reRankWeight = localParams.getDouble(ReRankQParserPlugin.RERANK_WEIGHT, ReRankQParserPlugin.RERANK_WEIGHT_DEFAULT);
+					final double reRankWeight = localParams.getDouble(ReRankQParserPlugin.RERANK_WEIGHT, DEFAULT_RERANK_WEIGHT);
 					SolrParams computedLocalParams = new ModifiableSolrParams(localParams)
 							.set(ReRankQParserPlugin.RERANK_QUERY, "{!vp f=" + field + " vector=\"" +vector + "\" lsh=\"false\"}")
-							.set(ReRankQParserPlugin.RERANK_DOCS, topNDocs)
 							.setNonNull(ReRankQParserPlugin.RERANK_WEIGHT, reRankWeight)
 							.set("q", lshQuery);
 					return ((AbstractReRankQuery) req.getCore().getQueryPlugin(ReRankQParserPlugin.NAME)
@@ -86,11 +88,14 @@ public class VectorQParserPlugin extends QParserPlugin {
 				String reqChain = getUpdateChainName(req);
 				LSHSuperBit superBit = superBitCache.computeIfAbsent(reqChain, (k) -> {
 					LSHUpdateProcessorFactory lshFactory = getLSHProcessorFromChain(req.getCore(), reqChain);
+					stagesScoreCache.put(reqChain, 1d / (double)lshFactory.getStages());
 					return new LSHSuperBit(lshFactory.getStages(), lshFactory.getBuckets(), lshFactory.getDimensions(), lshFactory.getSeed());
 				});
 				int[] intHash = superBit.hash(VectorUtils.parseInputVec(vector, vectorArray.length));
-				return LSHUtils.getLSHStringStream(intHash).map(x -> LSHUpdateProcessorFactory.DEFAULT_LSH_FIELD_NAME + ":\"" + x + "\"")
-						.collect(Collectors.joining(" OR "));
+				final Double stagesScorePercentage = stagesScoreCache.get(reqChain);
+				Stream<String> queryStringStream = LSHUtils.getLSHStringStream(intHash)
+						.map(x -> "("+ LSHUpdateProcessorFactory.DEFAULT_LSH_FIELD_NAME + ":\"" + x + "\")^=" + stagesScorePercentage);
+				return queryStringStream.collect(Collectors.joining(" OR "));
 			}
 		};
 	}

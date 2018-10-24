@@ -1,16 +1,10 @@
 package com.github.saaay71.solr.query.score;
 
 import com.github.saaay71.solr.VectorUtils;
-import com.github.saaay71.solr.query.VectorQuery;
-import com.google.protobuf.MapEntry;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class VectorQueryScorerFactory {
     public static final Map<VectorUtils.VectorType, VectorQueryScorer> scorers;

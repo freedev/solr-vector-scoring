@@ -63,7 +63,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:8983/solr/{you
 Open your browser and copy the links
 #### Query 1
 ```
-http://localhost:8983/solr/{your-collection-name}/query?fl=name,score,vector&q={!vp f=vector vector=\"1.55,3.53,2.3,0.7,3.44,2.33\" lsh=\"true\" topNDocs=\"5\"}&fl=name,score,vector,_vector_,_lsh_hash_
+http://localhost:8983/solr/{your-collection-name}/query?fl=name,score,vector&q={!vp f=vector vector=\"1.55,3.53,2.3,0.7,3.44,2.33\" lsh=\"true\" reRankDocs=\"5\"}&fl=name,score,vector,_vector_,_lsh_hash_
 ```
 
 You should see the following result:
@@ -73,7 +73,7 @@ You should see the following result:
     "status":0,
     "QTime":8,
     "params":{
-      "q":"{!vp f=vector vector=\"1.55,3.53,2.3,0.7,3.44,2.33\" lsh=\"true\" topNDocs=\"5\"}",
+      "q":"{!vp f=vector vector=\"1.55,3.53,2.3,0.7,3.44,2.33\" lsh=\"true\" reRankDocs=\"5\"}",
       "fl":"id, score, vector, _vector_, _lsh_hash_",
       "wt":"xml"}},
   "response":{"numFound":1,"start":0,"maxScore":36.65736,"docs":[
@@ -140,11 +140,11 @@ You should see the following result:
 #### Query 2
 Quering on other fields and with vector scoring.
 ```
-http://localhost:8983/solr/{your-collection-name}/query?fl=name,score,vector&q={!vp f=vector vector=\"3.54,0.4,4.16,4.88,4.28,4.25\" lsh=\"true\" topNDocs=\"5\" v=\"id:2\"}&fl=name,score,vector,_vector_,_lsh_hash_
+http://localhost:8983/solr/{your-collection-name}/query?fl=name,score,vector&q={!vp f=vector vector=\"3.54,0.4,4.16,4.88,4.28,4.25\" lsh=\"true\" reRankDocs=\"5\" v=\"id:2\"}&fl=name,score,vector,_vector_,_lsh_hash_
 ```
 or
 ```
-http://localhost:8983/solr/{your-collection-name}/query?fl=name,score,vector&q={!vp f=vector vector=\"3.54,0.4,4.16,4.88,4.28,4.25\" lsh=\"true\" topNDocs=\"5\"} id:2&fl=name,score,vector,_vector_,_lsh_hash_
+http://localhost:8983/solr/{your-collection-name}/query?fl=name,score,vector&q={!vp f=vector vector=\"3.54,0.4,4.16,4.88,4.28,4.25\" lsh=\"true\" reRankDocs=\"5\"} id:2&fl=name,score,vector,_vector_,_lsh_hash_
 ```
 
 result of query 2:
@@ -154,7 +154,7 @@ result of query 2:
     "status":0,
     "QTime":9,
     "params":{
-      "q":"{!vp f=vector vector=\"3.54,0.4,4.16,4.88,4.28,4.25\" lsh=\"true\" topNDocs=\"5\" v=\"id:2\"}",
+      "q":"{!vp f=vector vector=\"3.54,0.4,4.16,4.88,4.28,4.25\" lsh=\"true\" reRankDocs=\"5\" v=\"id:2\"}",
       "fl":"name, score, vector, _vector_, _lsh_hash_",
       "wt":"xml"}},
   "response":{"numFound":1,"start":0,"maxScore":38.649788,"docs":[

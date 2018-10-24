@@ -94,7 +94,7 @@ public class VectorQueryTest extends SolrTestCaseJ4 {
         indexSampleDenseData();
 
         // test only lsh
-        assertQ(req("q", "{!vp f=vector vector=\"" + denseVectors[0] + "\" lsh=\"true\" topNDocs=\"0\"}"),
+        assertQ(req("q", "{!vp f=vector vector=\"" + denseVectors[0] + "\" lsh=\"true\" reRankDocs=\"0\"}"),
                 "//*[@numFound='5']",
                 "//doc[1]/str[@name='vector'][.='" + denseVectors[0] + "']"
         );
@@ -108,8 +108,19 @@ public class VectorQueryTest extends SolrTestCaseJ4 {
                 "count(//float[@name='score'][.>='1.0'])=5"
         );
 
+        //test lsh + cosine similarity + reRankDocs
+        assertQ(req("q", "{!vp f=vector vector=\"" + denseVectors[1] + "\" lsh=\"true\" reRankDocs=\"1\"}",
+                "fl", "id, score, vector, _vector_, _lsh_hash_"),
+                "//*[@numFound='5']",
+                "//doc[1]/str[@name='vector'][.='" + denseVectors[1] + "']",
+                "//doc[1]/float[@name='score'][.>='1.0']",
+                "count(//float[@name='score'][.>'1.0'])=1",
+                "count(//float[@name='score'][.='1.0'])=4",
+                "//doc[1]/str[@name='id']=2"
+        );
+
         //test lsh + cosine similarity + lucene query
-        assertQ(req("q", "{!vp f=vector vector=\"" + denseVectors[1] + "\" lsh=\"true\" topNDocs=\"5\" v=\"id:2\"}",
+        assertQ(req("q", "{!vp f=vector vector=\"" + denseVectors[1] + "\" lsh=\"true\" reRankDocs=\"5\" v=\"id:2\"}",
                 "fl", "id, score, vector, _vector_, _lsh_hash_"),
                 "//*[@numFound='1']",
                 "//doc[1]/str[@name='vector'][.='" + denseVectors[1] + "']",
@@ -119,7 +130,7 @@ public class VectorQueryTest extends SolrTestCaseJ4 {
         );
 
         //test lsh + cosine similarity + regular lucene query
-        assertQ(req("q", "{!vp f=vector vector=\"" + denseVectors[1] + "\" lsh=\"true\" topNDocs=\"5\" }id:2",
+        assertQ(req("q", "{!vp f=vector vector=\"" + denseVectors[1] + "\" lsh=\"true\" reRankDocs=\"5\" }id:2",
                 "fl", "id, score, vector, _vector_, _lsh_hash_"),
                 "//*[@numFound='1']",
                 "//doc[1]/str[@name='vector'][.='" + denseVectors[1] + "']",
