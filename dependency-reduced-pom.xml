@@ -139,6 +139,7 @@
   </dependencies>
   <properties>
     <solr.version>7.4.0</solr.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.shade.plugin.version>3.2.0</maven.shade.plugin.version>
   </properties>
 </project>

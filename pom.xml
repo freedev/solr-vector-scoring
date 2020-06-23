@@ -10,6 +10,7 @@
     <name>Maven Quick Start Archetype</name>
     <url>http://maven.apache.org</url>
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.shade.plugin.version>3.2.0</maven.shade.plugin.version>
         <solr.version>7.4.0</solr.version>
     </properties>
@@ -19,7 +20,7 @@
         <dependency>
             <groupId>info.debatty</groupId>
             <artifactId>java-lsh</artifactId>
-            <version>RELEASE</version>
+            <version>0.12</version>
             <type>jar</type>
         </dependency>
 
@@ -113,7 +114,7 @@
                                     <goal>shade</goal>
                                 </goals>
                                 <configuration>
-                                    <outputFile>target/${project.artifactId}-deploy-${version}.jar</outputFile>
+                                    <outputFile>target/${project.artifactId}-deploy-${project.version}.jar</outputFile>
                                 </configuration>
                             </execution>
                         </executions>

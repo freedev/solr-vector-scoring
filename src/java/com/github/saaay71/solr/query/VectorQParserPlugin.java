@@ -9,18 +9,23 @@ import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.InitParams;
+import org.apache.solr.core.PluginInfo;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.schema.FieldType;
 import org.apache.solr.search.*;
 import org.apache.solr.update.processor.UpdateRequestProcessorChain;
 import org.apache.solr.update.processor.UpdateRequestProcessorFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class VectorQParserPlugin extends QParserPlugin {
+
+	private static final Logger logger = LoggerFactory.getLogger(VectorQParserPlugin.class);
 
 	public static final Double DEFAULT_RERANK_WEIGHT = 1.0d;
 	private static final Map<String, LSHSuperBit> superBitCache = new HashMap<>();
@@ -32,6 +37,7 @@ public class VectorQParserPlugin extends QParserPlugin {
 			@Override
 			public Query parse() throws SyntaxError {
 				String field = localParams.get(QueryParsing.F);
+				String lshField = localParams.get("lshField");
 				String vector = localParams.get("vector");
 				boolean cosine = localParams.getBool("cosine", true);
 
@@ -54,8 +60,12 @@ public class VectorQParserPlugin extends QParserPlugin {
 					q.setQueryString(localParams.toLocalParamsString());
 					query = q;
 				} else {
+					if (lshField == null) {
+						throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, "lshField missing");
+					}
+
 					final int topNDocs = localParams.getInt(ReRankQParserPlugin.RERANK_DOCS, ReRankQParserPlugin.RERANK_DOCS_DEFAULT);
-					String lshQuery = computeLSHQueryString(vector, vectorArray);
+					String lshQuery = computeLSHQueryString(lshField, vector, vectorArray);
 					if(subQueryStr != null && !subQueryStr.equals("")) {
 						lshQuery = subQuery(subQueryStr, null).getQuery() + " AND " + lshQuery;
 					}
@@ -84,7 +94,7 @@ public class VectorQParserPlugin extends QParserPlugin {
 				return new VectorScoreQuery(query, vectorList, req.getSchema().getField(field), cosine);
 			}
 
-			private String computeLSHQueryString(String vector, String[] vectorArray) {
+			private String computeLSHQueryString(String lshField, String vector, String[] vectorArray) {
 				String reqChain = getUpdateChainName(req);
 				LSHSuperBit superBit = superBitCache.computeIfAbsent(reqChain, (k) -> {
 					LSHUpdateProcessorFactory lshFactory = getLSHProcessorFromChain(req.getCore(), reqChain);
@@ -94,7 +104,7 @@ public class VectorQParserPlugin extends QParserPlugin {
 				int[] intHash = superBit.hash(VectorUtils.parseInputVec(vector, vectorArray.length));
 				final Double stagesScorePercentage = stagesScoreCache.get(reqChain);
 				Stream<String> queryStringStream = LSHUtils.getLSHStringStream(intHash)
-						.map(x -> "("+ LSHUpdateProcessorFactory.DEFAULT_LSH_FIELD_NAME + ":\"" + x + "\")^=" + stagesScorePercentage);
+						.map(x -> String.format("(%s:\"%s\")^=%s", lshField, x, stagesScorePercentage));
 				return queryStringStream.collect(Collectors.joining(" OR "));
 			}
 		};
@@ -121,7 +131,10 @@ public class VectorQParserPlugin extends QParserPlugin {
 		}
 		// try get the default
 		try {
-			return ((NamedList) req.getCore().getSolrConfig().getPluginInfo(InitParams.class.getName()).initArgs.get("defaults")).get("update.chain").toString();
+			logger.info("looking for" + InitParams.class.getName());
+			final PluginInfo pluginInfo = req.getCore().getSolrConfig().getPluginInfo(InitParams.class.getName());
+			logger.info("pluginInfo " + pluginInfo.toString());
+			return ((NamedList) pluginInfo.initArgs.get("defaults")).get("update.chain").toString();
 		} catch (NullPointerException e) {
 			throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
 					"Could not determine request chain name, try setting one using the update.chain request param");
