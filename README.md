@@ -26,22 +26,24 @@ mvn -Prelease clean package
 ```
 6. Add the field `vector` to schema file:
 ```
-    <field name="_vector_" type="VectorField" />
-    <field name="_lsh_hash_" type="string" indexed="true" stored="true" multiValued="true"/>
+    <field name="binaryVector" type="VectorField" />
+    <field name="lsh" type="string" indexed="true" stored="true" multiValued="true"/>
     <field name="vector" type="string" indexed="true" stored="true"/>
 ```
 
 7. Add the LSH urp to solrconfig.xml
 ```
     <updateRequestProcessorChain name="LSH">
-        <processor class="com.github.saaay71.solr.updateprocessor.LSHUpdateProcessorFactory" >
-            <int name="seed">5</int>
-            <int name="buckets">50</int>
-            <int name="stages">50</int>
-            <int name="dimensions">6</int>
-            <str name="field">vector</str>
-        </processor>
-        <processor class="solr.RunUpdateProcessorFactory" />
+      <processor class="com.github.saaay71.solr.updateprocessor.LSHUpdateProcessorFactory" >
+        <int name="seed">5</int>
+        <int name="buckets">50</int>
+        <int name="stages">50</int>
+        <int name="dimensions">6</int>
+        <str name="field">vector</str>
+        <str name="binaryField">binaryVector</str>
+        <str name="lshField">lsh</str>
+      </processor>
+      <processor class="solr.RunUpdateProcessorFactory" />
     </updateRequestProcessorChain>
 ```
 
