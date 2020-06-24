@@ -1,6 +1,8 @@
 package com.github.saaay71.solr.query;
 
 import com.github.saaay71.solr.VectorUtils;
+import com.github.saaay71.solr.updateprocessor.LSHConfigMapFactory;
+import com.github.saaay71.solr.updateprocessor.LSHFieldConfig;
 import com.github.saaay71.solr.updateprocessor.LSHUpdateProcessorFactory;
 import info.debatty.java.lsh.LSHSuperBit;
 import org.apache.lucene.search.Query;
@@ -37,7 +39,6 @@ public class VectorQParserPlugin extends QParserPlugin {
 			@Override
 			public Query parse() throws SyntaxError {
 				String field = localParams.get(QueryParsing.F);
-				String lshField = localParams.get("lshField");
 				String vector = localParams.get("vector");
 				boolean cosine = localParams.getBool("cosine", true);
 
@@ -60,12 +61,14 @@ public class VectorQParserPlugin extends QParserPlugin {
 					q.setQueryString(localParams.toLocalParamsString());
 					query = q;
 				} else {
-					if (lshField == null) {
-						throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, "lshField missing");
-					}
 
 					final int topNDocs = localParams.getInt(ReRankQParserPlugin.RERANK_DOCS, ReRankQParserPlugin.RERANK_DOCS_DEFAULT);
-					String lshQuery = computeLSHQueryString(lshField, vector, vectorArray);
+					List<LSHFieldConfig> fieldConfigList = LSHConfigMapFactory.fieldConfigList;
+					final LSHFieldConfig config = fieldConfigList.stream()
+																		  .filter(l -> l.fieldName.endsWith(field))
+																		  .findFirst()
+							.orElseThrow(() -> new SolrException(SolrException.ErrorCode.BAD_REQUEST, field + " not exists"));
+					String lshQuery = computeLSHQueryString(config, vector, vectorArray);
 					if(subQueryStr != null && !subQueryStr.equals("")) {
 						lshQuery = subQuery(subQueryStr, null).getQuery() + " AND " + lshQuery;
 					}
@@ -94,17 +97,15 @@ public class VectorQParserPlugin extends QParserPlugin {
 				return new VectorScoreQuery(query, vectorList, req.getSchema().getField(field), cosine);
 			}
 
-			private String computeLSHQueryString(String lshField, String vector, String[] vectorArray) {
-				String reqChain = getUpdateChainName(req);
-				LSHSuperBit superBit = superBitCache.computeIfAbsent(reqChain, (k) -> {
-					LSHUpdateProcessorFactory lshFactory = getLSHProcessorFromChain(req.getCore(), reqChain);
-					stagesScoreCache.put(reqChain, 1d / (double)lshFactory.getStages());
-					return new LSHSuperBit(lshFactory.getStages(), lshFactory.getBuckets(), lshFactory.getDimensions(), lshFactory.getSeed());
+			private String computeLSHQueryString(LSHFieldConfig config, String vector, String[] vectorArray) {
+				LSHSuperBit superBit = superBitCache.computeIfAbsent(config.fieldName, (k) -> {
+					stagesScoreCache.put(config.fieldName, 1d / (double)config.stages);
+					return new LSHSuperBit(config.stages, config.buckets, config.dimensions, config.seed);
 				});
 				int[] intHash = superBit.hash(VectorUtils.parseInputVec(vector, vectorArray.length));
-				final Double stagesScorePercentage = stagesScoreCache.get(reqChain);
+				final Double stagesScorePercentage = stagesScoreCache.get(config.fieldName);
 				Stream<String> queryStringStream = LSHUtils.getLSHStringStream(intHash)
-						.map(x -> String.format("(%s:\"%s\")^=%s", lshField, x, stagesScorePercentage));
+						.map(x -> String.format("(%s:\"%s\")^=%s", config.lshFieldName, x, stagesScorePercentage));
 				return queryStringStream.collect(Collectors.joining(" OR "));
 			}
 		};
@@ -124,20 +125,4 @@ public class VectorQParserPlugin extends QParserPlugin {
 		return (LSHUpdateProcessorFactory) LSHProcessors.get(0);
 	}
 
-	private static String getUpdateChainName(SolrQueryRequest req) {
-		String chainName = req.getParams().get("update.chain");
-		if(chainName != null) {
-			return chainName;
-		}
-		// try get the default
-		try {
-			logger.info("looking for" + InitParams.class.getName());
-			final PluginInfo pluginInfo = req.getCore().getSolrConfig().getPluginInfo(InitParams.class.getName());
-			logger.info("pluginInfo " + pluginInfo.toString());
-			return ((NamedList) pluginInfo.initArgs.get("defaults")).get("update.chain").toString();
-		} catch (NullPointerException e) {
-			throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
-					"Could not determine request chain name, try setting one using the update.chain request param");
-		}
-	}
 }
