@@ -35,13 +35,17 @@ mvn -Prelease clean package
 ```
     <updateRequestProcessorChain name="LSH">
       <processor class="com.github.saaay71.solr.updateprocessor.LSHUpdateProcessorFactory" >
-        <int name="seed">5</int>
-        <int name="buckets">50</int>
-        <int name="stages">50</int>
-        <int name="dimensions">6</int>
-        <str name="field">vector</str>
-        <str name="binaryField">binaryVector</str>
-        <str name="lshField">lsh</str>
+        <arr name="vectors">
+          <lst name="vector">
+            <int name="seed">5</int>
+            <int name="buckets">50</int>
+            <int name="stages">50</int>
+            <int name="dimensions">6</int>
+            <str name="field">vector</str>
+            <str name="binaryField">binaryVector</str>
+            <str name="lshField">lsh</str>
+          </lst>
+        </arr>
       </processor>
       <processor class="solr.RunUpdateProcessorFactory" />
     </updateRequestProcessorChain>
