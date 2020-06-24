@@ -3,18 +3,14 @@ package com.github.saaay71.solr.query;
 import com.github.saaay71.solr.VectorUtils;
 import com.github.saaay71.solr.updateprocessor.LSHConfigMapFactory;
 import com.github.saaay71.solr.updateprocessor.LSHFieldConfig;
-import com.github.saaay71.solr.updateprocessor.LSHUpdateProcessorFactory;
 import info.debatty.java.lsh.LSHSuperBit;
 import org.apache.lucene.search.Query;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.SolrParams;
-import org.apache.solr.core.SolrCore;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.schema.FieldType;
 import org.apache.solr.search.*;
-import org.apache.solr.update.processor.UpdateRequestProcessorChain;
-import org.apache.solr.update.processor.UpdateRequestProcessorFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +51,7 @@ public class VectorQParserPlugin extends QParserPlugin {
                 String[] vectorArray = vector.split(",");
 
                 if (ft != null && !localParams.getBool("lsh", false)) {
-					VectorQuery q = new VectorQuery(subQuery(subQueryStr, null).getQuery());
+                    VectorQuery q = new VectorQuery(subQuery(subQueryStr, null).getQuery());
                     q.setQueryString(localParams.toLocalParamsString());
                     query = q;
                 } else {
