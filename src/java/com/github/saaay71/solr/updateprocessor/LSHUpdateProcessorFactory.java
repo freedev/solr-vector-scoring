@@ -25,6 +25,8 @@ public class LSHUpdateProcessorFactory extends UpdateRequestProcessorFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(LSHUpdateProcessorFactory.class);
 
+    private List<LSHFieldConfig> fieldConfigList = new ArrayList<>();
+
     public static final String DEFAULT_VECTOR_TYPE = "AUTO";
     public static final String DEFAULT_FIELD_NAME = "vector";
     public static final String DEFAULT_LSH_FIELD_NAME = "_lsh_hash_";
@@ -42,12 +44,12 @@ public class LSHUpdateProcessorFactory extends UpdateRequestProcessorFactory {
 
     @Override
     public void init(NamedList args) {
-        List<LSHFieldConfig> fieldConfigList = LSHConfigMapFactory.fieldConfigList;
         List<NamedList> allLists = (List<NamedList>) args.get("vectors");
         for (NamedList nlst : allLists) {
             LSHFieldConfig config = buildLHSFieldConfig(nlst);
             fieldConfigList.add(config);
         }
+//        LSHConfigMapFactory.fieldConfigList = fieldConfigList;
     }
 
     private LSHFieldConfig buildLHSFieldConfig(NamedList nlst) {
@@ -70,7 +72,7 @@ public class LSHUpdateProcessorFactory extends UpdateRequestProcessorFactory {
     }
 
     public UpdateRequestProcessor getInstance(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next) {
-        List<LSHFieldConfig> fieldConfigList = LSHConfigMapFactory.fieldConfigList;
+//        List<LSHFieldConfig> fieldConfigList = LSHConfigMapFactory.fieldConfigList;
         return new LSHUpdateProcessor(req.getSchema(), fieldConfigList, next);
     }
 
@@ -106,6 +108,8 @@ class LSHUpdateProcessor extends UpdateRequestProcessor {
 
     public LSHUpdateProcessor(IndexSchema schema, List<LSHFieldConfig> fieldConfigList, UpdateRequestProcessor next) {
         super(next);
+
+
         logger.info("created LSHUpdateProcessor");
         Map<String, LSHBitMapConfig> superBitMap = LSHConfigMapFactory.superBitMap;
         for (LSHFieldConfig config : fieldConfigList) {
