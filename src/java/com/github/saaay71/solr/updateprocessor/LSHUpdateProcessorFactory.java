@@ -109,7 +109,6 @@ class LSHUpdateProcessor extends UpdateRequestProcessor {
         for (LSHFieldConfig config : fieldConfigList) {
             LSHBitMapConfig bitMapConfig = new LSHBitMapConfig();
             bitMapConfig.fieldConfig = config;
-            bitMapConfig.fieldName = config.fieldName;
             bitMapConfig.field = schema.getField(config.fieldName);
             bitMapConfig.binaryField = schema.getField(config.binaryFieldName);
             bitMapConfig.lshField = schema.getField(config.lshFieldName);
@@ -127,12 +126,13 @@ class LSHUpdateProcessor extends UpdateRequestProcessor {
         Map<String, LSHBitMapConfig> superBitConfigMap = LSHConfigMapFactory.bitConfigMapByLSHField;
         for (Map.Entry e : superBitConfigMap.entrySet()) {
             LSHBitMapConfig config = (LSHBitMapConfig) e.getValue();
-            if (cmdDoc.containsKey(config.fieldName)) {
-                final Object obj = cmdDoc.getFieldValue(config.fieldName);
+            String fieldName = config.field.getName();
+            if (cmdDoc.containsKey(fieldName)) {
+                final Object obj = cmdDoc.getFieldValue(fieldName);
                 if (obj instanceof String) {
                     final String vectorStr = ((String) obj);
                     cmdDoc.setField(config.binaryField.getName(), VectorUtils.encode(vectorStr, config.vecType).bytes);
-                    final LSHSuperBit lshSuperBit = LSHConfigMapFactory.getLSHSuperBitByFieldName(config.fieldName);
+                    final LSHSuperBit lshSuperBit = LSHConfigMapFactory.getLSHSuperBitByFieldName(fieldName);
                     int[] hashValues = lshSuperBit.hash(VectorUtils.parseInputVec(vectorStr, config.vecDimensions));
                     List<String> hashStringValues = LSHUtils.getLSHStringStream(hashValues)
                                                             .collect(Collectors.toList());
@@ -141,7 +141,7 @@ class LSHUpdateProcessor extends UpdateRequestProcessor {
                     final LinkedHashMap map = (LinkedHashMap) obj;
                     final String vectorStr = (String) map.get("set");
                     cmdDoc.setField(config.binaryField.getName(), VectorUtils.encode(vectorStr, config.vecType).bytes);
-                    final LSHSuperBit lshSuperBit = LSHConfigMapFactory.getLSHSuperBitByFieldName(config.fieldName);
+                    final LSHSuperBit lshSuperBit = LSHConfigMapFactory.getLSHSuperBitByFieldName(fieldName);
                     int[] hashValues = lshSuperBit.hash(VectorUtils.parseInputVec(vectorStr, config.vecDimensions));
                     List<String> hashStringValues = LSHUtils.getLSHStringStream(hashValues)
                                                             .collect(Collectors.toList());

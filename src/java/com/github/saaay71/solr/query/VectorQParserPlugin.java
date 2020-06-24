@@ -1,7 +1,6 @@
 package com.github.saaay71.solr.query;
 
 import com.github.saaay71.solr.VectorUtils;
-import com.github.saaay71.solr.updateprocessor.LSHBitMapConfig;
 import com.github.saaay71.solr.updateprocessor.LSHConfigMapFactory;
 import com.github.saaay71.solr.updateprocessor.LSHFieldConfig;
 import info.debatty.java.lsh.LSHSuperBit;

@@ -4,7 +4,6 @@ import com.github.saaay71.solr.VectorUtils;
 import org.apache.solr.schema.SchemaField;
 
 public class LSHBitMapConfig {
-    public String fieldName;
     public SchemaField field;
     public SchemaField lshField;
     public SchemaField binaryField;
