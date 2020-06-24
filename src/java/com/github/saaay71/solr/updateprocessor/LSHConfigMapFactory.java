@@ -1,14 +1,27 @@
 package com.github.saaay71.solr.updateprocessor;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import info.debatty.java.lsh.LSHSuperBit;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.common.SolrException;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class LSHConfigMapFactory {
 
-    public static Map<String, LSHBitMapConfig> superBitMap = new HashMap<>();
-    public static List<LSHFieldConfig> fieldConfigList = new ArrayList<>();
+    public static ConcurrentMap<String, LSHSuperBit> superBitCacheMap = new ConcurrentHashMap<>();
+    public static ConcurrentMap<String, LSHFieldConfig> lshFieldConfigMap = new ConcurrentHashMap<>();
+    public static ConcurrentMap<String, LSHBitMapConfig> bitConfigMapByLSHField = new ConcurrentHashMap<>();
+
+    public static LSHSuperBit getLSHSuperBitByFieldName(String fieldName) {
+        return LSHConfigMapFactory.superBitCacheMap.computeIfAbsent(fieldName, (f) -> {
+            final LSHFieldConfig config = lshFieldConfigMap.get(f);
+            if (config == null) {
+                throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, String.format("'%s' not specified in configuration", fieldName));
+            }
+            return new LSHSuperBit(config.stages, config.buckets, config.dimensions, config.seed);
+        });
+    }
 
 //    private static class LazyHolder {
 //        private static final LSHConfigMapFactory INSTANCE = new LSHConfigMapFactory();

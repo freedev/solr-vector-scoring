@@ -2,7 +2,6 @@ package com.github.saaay71.solr.updateprocessor;
 
 import com.github.saaay71.solr.VectorUtils;
 import com.github.saaay71.solr.query.LSHUtils;
-import com.github.saaay71.solr.query.VectorQParserPlugin;
 import info.debatty.java.lsh.LSHSuperBit;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
@@ -30,6 +29,7 @@ public class LSHUpdateProcessorFactory extends UpdateRequestProcessorFactory {
     public static final String DEFAULT_LSH_FIELD_NAME = "_lsh_hash_";
     public static final String DEFAULT_BINARY_FIELD_NAME = "_vector_";
     private static final Random random = new Random();
+    private List<LSHFieldConfig> fieldConfigList = new ArrayList<>();
 
     private static String getArgString(NamedList args, String fieldName) throws SolrException {
         Object argVal = args.get(fieldName);
@@ -42,11 +42,11 @@ public class LSHUpdateProcessorFactory extends UpdateRequestProcessorFactory {
 
     @Override
     public void init(NamedList args) {
-        List<LSHFieldConfig> fieldConfigList = LSHConfigMapFactory.fieldConfigList;
         List<NamedList> allLists = (List<NamedList>) args.get("vectors");
         for (NamedList nlst : allLists) {
             LSHFieldConfig config = buildLHSFieldConfig(nlst);
             fieldConfigList.add(config);
+            LSHConfigMapFactory.lshFieldConfigMap.put(config.fieldName, config);
         }
     }
 
@@ -70,7 +70,6 @@ public class LSHUpdateProcessorFactory extends UpdateRequestProcessorFactory {
     }
 
     public UpdateRequestProcessor getInstance(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next) {
-        List<LSHFieldConfig> fieldConfigList = LSHConfigMapFactory.fieldConfigList;
         return new LSHUpdateProcessor(req.getSchema(), fieldConfigList, next);
     }
 
@@ -107,35 +106,34 @@ class LSHUpdateProcessor extends UpdateRequestProcessor {
     public LSHUpdateProcessor(IndexSchema schema, List<LSHFieldConfig> fieldConfigList, UpdateRequestProcessor next) {
         super(next);
         logger.info("created LSHUpdateProcessor");
-        Map<String, LSHBitMapConfig> superBitMap = LSHConfigMapFactory.superBitMap;
         for (LSHFieldConfig config : fieldConfigList) {
-            superBitMap.computeIfAbsent(config.fieldName, field -> {
-                LSHBitMapConfig bitMapConfig = new LSHBitMapConfig();
-                bitMapConfig.superBit = new LSHSuperBit(config.stages, config.buckets, config.dimensions, config.seed);
-                bitMapConfig.fieldName = config.fieldName;
-                bitMapConfig.field = schema.getField(config.fieldName);
-                bitMapConfig.binaryField = schema.getField(config.binaryFieldName);
-                bitMapConfig.lshField = schema.getField(config.lshFieldName);
-                bitMapConfig.vecType = VectorUtils.VectorType.valueOf(config.vectorType);
-                bitMapConfig.vecDimensions = config.dimensions;
-                logger.info("created LSHBitMapConfig for field " + config.fieldName);
-                return bitMapConfig;
-            });
+            LSHBitMapConfig bitMapConfig = new LSHBitMapConfig();
+            bitMapConfig.fieldConfig = config;
+            bitMapConfig.fieldName = config.fieldName;
+            bitMapConfig.field = schema.getField(config.fieldName);
+            bitMapConfig.binaryField = schema.getField(config.binaryFieldName);
+            bitMapConfig.lshField = schema.getField(config.lshFieldName);
+            bitMapConfig.vecType = VectorUtils.VectorType.valueOf(config.vectorType);
+            bitMapConfig.vecDimensions = config.dimensions;
+            logger.info("created LSHBitMapConfig for field " + config.fieldName);
+            LSHConfigMapFactory.bitConfigMapByLSHField.put(config.lshFieldName, bitMapConfig);
+            LSHConfigMapFactory.superBitCacheMap.putIfAbsent(config.lshFieldName, new LSHSuperBit(config.stages, config.buckets, config.dimensions, config.seed));
         }
     }
 
     @Override
     public void processAdd(AddUpdateCommand cmd) throws IOException {
         SolrInputDocument cmdDoc = cmd.getSolrInputDocument();
-        Map<String, LSHBitMapConfig> superBitMap = LSHConfigMapFactory.superBitMap;
-        for (Map.Entry e : superBitMap.entrySet()) {
+        Map<String, LSHBitMapConfig> superBitConfigMap = LSHConfigMapFactory.bitConfigMapByLSHField;
+        for (Map.Entry e : superBitConfigMap.entrySet()) {
             LSHBitMapConfig config = (LSHBitMapConfig) e.getValue();
             if (cmdDoc.containsKey(config.fieldName)) {
                 final Object obj = cmdDoc.getFieldValue(config.fieldName);
                 if (obj instanceof String) {
-                    final String vectorStr = ((String) obj).replaceAll("[\\[\\]\\s]", "");
+                    final String vectorStr = ((String) obj);
                     cmdDoc.setField(config.binaryField.getName(), VectorUtils.encode(vectorStr, config.vecType).bytes);
-                    int[] hashValues = config.superBit.hash(VectorUtils.parseInputVec(vectorStr, config.vecDimensions));
+                    final LSHSuperBit lshSuperBit = LSHConfigMapFactory.getLSHSuperBitByFieldName(config.fieldName);
+                    int[] hashValues = lshSuperBit.hash(VectorUtils.parseInputVec(vectorStr, config.vecDimensions));
                     List<String> hashStringValues = LSHUtils.getLSHStringStream(hashValues)
                                                             .collect(Collectors.toList());
                     cmdDoc.setField(config.lshField.getName(), hashStringValues);
@@ -143,7 +141,8 @@ class LSHUpdateProcessor extends UpdateRequestProcessor {
                     final LinkedHashMap map = (LinkedHashMap) obj;
                     final String vectorStr = (String) map.get("set");
                     cmdDoc.setField(config.binaryField.getName(), VectorUtils.encode(vectorStr, config.vecType).bytes);
-                    int[] hashValues = config.superBit.hash(VectorUtils.parseInputVec(vectorStr, config.vecDimensions));
+                    final LSHSuperBit lshSuperBit = LSHConfigMapFactory.getLSHSuperBitByFieldName(config.fieldName);
+                    int[] hashValues = lshSuperBit.hash(VectorUtils.parseInputVec(vectorStr, config.vecDimensions));
                     List<String> hashStringValues = LSHUtils.getLSHStringStream(hashValues)
                                                             .collect(Collectors.toList());
                     cmdDoc.setField(config.lshField.getName(), hashStringValues);
