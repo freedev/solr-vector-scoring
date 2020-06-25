@@ -48,6 +48,7 @@ public class LSHUpdateProcessorFactory extends UpdateRequestProcessorFactory {
             fieldConfigList.add(config);
             LSHConfigMapFactory.lshFieldConfigMap.put(config.fieldName, config);
         }
+        LSHConfigMapFactory.clearSuperBitCacheMap();
     }
 
     private LSHFieldConfig buildLHSFieldConfig(NamedList nlst) {
@@ -114,9 +115,8 @@ class LSHUpdateProcessor extends UpdateRequestProcessor {
             bitMapConfig.lshField = schema.getField(config.lshFieldName);
             bitMapConfig.vecType = VectorUtils.VectorType.valueOf(config.vectorType);
             bitMapConfig.vecDimensions = config.dimensions;
-            logger.info("created LSHBitMapConfig for field " + config.fieldName);
             LSHConfigMapFactory.bitConfigMapByLSHField.put(config.lshFieldName, bitMapConfig);
-            LSHConfigMapFactory.superBitCacheMap.putIfAbsent(config.lshFieldName, new LSHSuperBit(config.stages, config.buckets, config.dimensions, config.seed));
+            logger.info("created LSHBitMapConfig for field " + config.fieldName);
         }
     }
 

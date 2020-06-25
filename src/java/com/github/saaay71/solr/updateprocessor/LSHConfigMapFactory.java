@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentMap;
 
 public class LSHConfigMapFactory {
 
-    public static ConcurrentMap<String, LSHSuperBit> superBitCacheMap = new ConcurrentHashMap<>();
+    private static ConcurrentMap<String, LSHSuperBit> superBitCacheMap = new ConcurrentHashMap<>();
     public static ConcurrentMap<String, LSHFieldConfig> lshFieldConfigMap = new ConcurrentHashMap<>();
     public static ConcurrentMap<String, LSHBitMapConfig> bitConfigMapByLSHField = new ConcurrentHashMap<>();
 
@@ -28,6 +28,10 @@ public class LSHConfigMapFactory {
             }
             return new LSHSuperBit(config.stages, config.buckets, config.dimensions, config.seed);
         });
+    }
+
+    public static void clearSuperBitCacheMap() {
+        LSHConfigMapFactory.superBitCacheMap.clear();
     }
 
 //    public static SolrClient getInstance() {
