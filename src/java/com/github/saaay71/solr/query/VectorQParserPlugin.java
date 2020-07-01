@@ -44,6 +44,7 @@ public class VectorQParserPlugin extends QParserPlugin {
                 FieldType ft = req.getCore().getLatestSchema().getFieldType(field);
                 String subQueryStr = localParams.get(QueryParsing.V);
                 String[] vectorArray = vector.split(",");
+                final LSHFieldConfig lshFieldConfig = LSHConfigMapFactory.lshFieldConfigMap.get(field);
 
                 if (ft != null && !localParams.getBool("lsh", false)) {
                     VectorQuery q = new VectorQuery(subQuery(subQueryStr, null).getQuery());
@@ -56,12 +57,11 @@ public class VectorQParserPlugin extends QParserPlugin {
                         vectorList.add(v);
                     }
 
-                    return new VectorScoreQuery(query, vectorList, req.getSchema().getField(field), cosine);
+                    return new VectorScoreQuery(query, vectorList, req.getSchema().getField(field), req.getSchema().getField(lshFieldConfig.binaryFieldName), cosine);
                 } else {
 
                     final int topNDocs = localParams
                             .getInt(ReRankQParserPlugin.RERANK_DOCS, ReRankQParserPlugin.RERANK_DOCS_DEFAULT);
-                    final LSHFieldConfig lshFieldConfig = LSHConfigMapFactory.lshFieldConfigMap.get(field);
                     final LSHSuperBit superBit = LSHConfigMapFactory.getLSHSuperBitByFieldName(field);
                     String lshQuery = computeLSHQueryString(superBit, lshFieldConfig.lshFieldName, lshFieldConfig.stages,
                             VectorUtils.parseInputVec(vector, vectorArray.length));

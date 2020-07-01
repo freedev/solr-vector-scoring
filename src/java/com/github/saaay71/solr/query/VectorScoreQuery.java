@@ -14,15 +14,17 @@ import org.apache.solr.common.SolrException;
 import org.apache.solr.schema.SchemaField;
 
 public class VectorScoreQuery extends CustomScoreQuery {
-	private static final String DEFAULT_BINARY_FIELD_NAME = "_vector_";
-	private static final Set<String> FIELDS = new HashSet<String>(){{add(DEFAULT_BINARY_FIELD_NAME);}};
-	List<Double> vector;
-	SchemaField field;
+	private Set<String> FIELDS;
+	private List<Double> vector;
+	private SchemaField field;
+	private SchemaField binaryField;
 	boolean cosine;
 
-	public VectorScoreQuery(Query subQuery, List<Double> vector, SchemaField field, boolean cosine) {
+	public VectorScoreQuery(Query subQuery, List<Double> vector, SchemaField field, SchemaField binaryField, boolean cosine) {
 		super(subQuery);
 		this.field = field;
+		this.binaryField = binaryField;
+		this.FIELDS = new HashSet<String>(){{add(binaryField.getName());}};
 		this.cosine = cosine;
 		this.vector = vector;
 	}
@@ -31,7 +33,7 @@ public class VectorScoreQuery extends CustomScoreQuery {
 		return new CustomScoreProvider(context){
 			@Override
 			public float customScore(int docID, float subQueryScore, float valSrcScore) throws IOException {
-				BytesRef vecBytes = context.reader().document(docID, FIELDS).getBinaryValue(DEFAULT_BINARY_FIELD_NAME);
+				BytesRef vecBytes = context.reader().document(docID, FIELDS).getBinaryValue(binaryField.getName());
 				if(vecBytes == null) {
 					throw new SolrException(SolrException.ErrorCode.SERVER_ERROR, "Could not find vector for docId: \"" + docID + "\"");
 				}
