@@ -3,7 +3,13 @@ package com.github.saaay71.solr.query;
 import com.github.saaay71.solr.VectorUtils;
 import com.github.saaay71.solr.updateprocessor.LSHConfigMapFactory;
 import com.github.saaay71.solr.updateprocessor.LSHFieldConfig;
+import com.github.saaay71.solr.updateprocessor.LSHUpdateProcessorFactory;
 import info.debatty.java.lsh.LSHSuperBit;
+import org.apache.lucene.expressions.Expression;
+import org.apache.lucene.expressions.SimpleBindings;
+import org.apache.lucene.expressions.js.JavascriptCompiler;
+import org.apache.lucene.queries.function.FunctionScoreQuery;
+import org.apache.lucene.search.DoubleValuesSource;
 import org.apache.lucene.search.Query;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.params.ModifiableSolrParams;
@@ -14,6 +20,7 @@ import org.apache.solr.search.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,7 +64,12 @@ public class VectorQParserPlugin extends QParserPlugin {
                         vectorList.add(v);
                     }
 
-                    return new VectorScoreQuery(query, vectorList, req.getSchema().getField(field), req.getSchema().getField(lshFieldConfig.binaryFieldName), cosine);
+//                    return new VectorScoreQuery(query, vectorList, req.getSchema().getField(field), req.getSchema().getField(lshFieldConfig.binaryFieldName), cosine);
+                    final VectorValuesSource vectorValuesSource = new VectorValuesSource(vectorList,
+                            req.getSchema().getField(field),
+                            req.getSchema().getField(lshFieldConfig.binaryFieldName),
+                            cosine);
+                    return FunctionScoreQuery.boostByValue(query, vectorValuesSource);
                 } else {
 
                     final int topNDocs = localParams
