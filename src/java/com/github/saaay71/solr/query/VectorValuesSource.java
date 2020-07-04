@@ -34,17 +34,17 @@ import java.util.*;
 
 public class VectorValuesSource extends DoubleValuesSource {
 	private List<Double> vector;
-	private SchemaField field;
 	private SchemaField binaryField;
-	boolean cosine;
-	VectorUtils.VectorType vecType;
+	private VectorUtils.VectorType vecType;
+	private Set<String> FIELDS;
+	private String binaryFieldName;
 
-	public VectorValuesSource(List<Double> vector, SchemaField field, SchemaField binaryField, boolean cosine) {
+	public VectorValuesSource(List<Double> vector, SchemaField field, SchemaField binaryField) {
 //		super(field.getName());
-		this.field = field;
+		this.FIELDS = new HashSet<String>(){{add(binaryField.getName());}};
 		this.vector = vector;
 		this.binaryField = binaryField;
-		this.cosine = cosine;
+		this.binaryFieldName = this.binaryField.getName();
 		this.vecType = VectorUtils.VectorType.valueOf(
 				(String)((Map<String, Object>)(field.getArgs())).getOrDefault("vectorType", "AUTO")
 		);
@@ -70,9 +70,7 @@ public class VectorValuesSource extends DoubleValuesSource {
 	@Override
 	public DoubleValues getValues(LeafReaderContext ctx, DoubleValues doubleValues) throws IOException {
 
-		Set<String> FIELDS = new HashSet<String>(){{add(binaryField.getName());}};
-		final String name = this.binaryField.getName();
-		FieldInfo fieldInfo = ctx.reader().getFieldInfos().fieldInfo(name);
+		FieldInfo fieldInfo = ctx.reader().getFieldInfos().fieldInfo(binaryFieldName);
 		return new DoubleValues() {
 
 			double val = 0;
@@ -84,7 +82,7 @@ public class VectorValuesSource extends DoubleValuesSource {
 			@Override
 			public boolean advanceExact(int i) throws IOException {
 				if (fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.BINARY) {
-					final BinaryDocValues binaryValues = DocValues.getBinary(ctx.reader(), name);
+					final BinaryDocValues binaryValues = DocValues.getBinary(ctx.reader(), binaryFieldName);
 					final BytesRef bytesRef = binaryValues.binaryValue();
 					if (bytesRef == null)
 						return false;
@@ -92,7 +90,7 @@ public class VectorValuesSource extends DoubleValuesSource {
 					return true;
 				} else {
 					final Document document = ctx.reader().document(i, FIELDS);
-					final BytesRef bytesRef = document.getBinaryValue(name);
+					final BytesRef bytesRef = document.getBinaryValue(binaryFieldName);
 					if (bytesRef == null)
 						return false;
 					val = VectorQueryScorerFactory.getScorer(vecType, bytesRef).score(vector, VectorQuery.VectorQueryType.COSINE, bytesRef);

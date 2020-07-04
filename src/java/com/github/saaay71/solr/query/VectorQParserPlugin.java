@@ -67,8 +67,7 @@ public class VectorQParserPlugin extends QParserPlugin {
 //                    return new VectorScoreQuery(query, vectorList, req.getSchema().getField(field), req.getSchema().getField(lshFieldConfig.binaryFieldName), cosine);
                     final VectorValuesSource vectorValuesSource = new VectorValuesSource(vectorList,
                             req.getSchema().getField(field),
-                            req.getSchema().getField(lshFieldConfig.binaryFieldName),
-                            cosine);
+                            req.getSchema().getField(lshFieldConfig.binaryFieldName));
                     return FunctionScoreQuery.boostByValue(query, vectorValuesSource);
                 } else {
 
