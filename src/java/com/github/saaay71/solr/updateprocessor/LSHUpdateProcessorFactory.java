@@ -78,21 +78,6 @@ public class LSHUpdateProcessorFactory extends UpdateRequestProcessorFactory {
         return random.nextLong();
     }
 
-//    public Long getSeed() {
-//        return seed;
-//    }
-//
-//    public Integer getDimensions() {
-//        return dimensions;
-//    }
-//
-//    public Integer getBuckets() {
-//        return buckets;
-//    }
-//
-//    public Integer getStages() {
-//        return stages;
-//    }
 }
 
 class LSHUpdateProcessor extends UpdateRequestProcessor {

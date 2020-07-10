@@ -16,11 +16,11 @@ public class VectorQueryScorerFactory {
     }
 
     public static VectorQueryScorer getScorer(VectorUtils.VectorType vectorType, BytesRef buffer) {
-        if(vectorType != VectorUtils.VectorType.AUTO) {
+        if (vectorType != VectorUtils.VectorType.AUTO) {
             return scorers.get(vectorType);
         }
 
-        if(buffer.bytes[buffer.offset] == VectorUtils.DENSE_VECTOR_BYTE) {
+        if (buffer.bytes[buffer.offset] == VectorUtils.DENSE_VECTOR_BYTE) {
             shiftBytesRef(buffer);
             return safeGet(VectorUtils.VectorType.DENSE);
         }
@@ -31,7 +31,7 @@ public class VectorQueryScorerFactory {
 
     private static VectorQueryScorer safeGet(VectorUtils.VectorType vectorType) {
         VectorQueryScorer scorer = scorers.get(vectorType);
-        if(scorer != null) {
+        if (scorer != null) {
             return scorer;
         }
         throw new RuntimeException("scorer \"" + vectorType.name() + "\" does not exist in factory");

@@ -79,7 +79,7 @@
     <dependency>
       <groupId>org.apache.solr</groupId>
       <artifactId>solr-test-framework</artifactId>
-      <version>7.4.0</version>
+      <version>${solr.version}</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -138,7 +138,7 @@
     </dependency>
   </dependencies>
   <properties>
-    <solr.version>7.4.0</solr.version>
+    <solr.version>8.5.2</solr.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.shade.plugin.version>3.2.0</maven.shade.plugin.version>
   </properties>
